@@ -37,6 +37,7 @@ export const DOMDirectiveTransforms: Record<string, DirectiveTransform> = {
   show: transformShow
 }
 
+// compiler-dom负责传入dom编译相关api，核心的由compiler-core提供
 export function compile(
   template: string,
   options: CompilerOptions = {}

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div></div>
+  </body>
+  <script>
+    // 巨大的target，数据结构是{target: { key: new set([]) }}
+    const targetMap = new WeakMap()
+    let activeEffect = null
+    // 1.先提供一个函数
+    function reactive(target) {
+      if (typeof target !== 'object') {
+        return target
+      }
+      return new Proxy(target, mutableHandlers())
+    }
+    // 2.提供一个mutableHandlers函数，处理代理的set,get，deleteProperty
+    function mutableHandlers() {
+      return {
+        get: (target, key) => {
+          //   console.log('get', key, )
+          track(target, key)
+          return typeof target[key] === 'object'
+            ? reactive(target[key])
+            : target[key]
+        },
+        set: (target, key, value) => {
+          console.log('set', key)
+          trigger(target, key)
+          return (target[key] = value)
+        },
+        deleteProperty: (target, key) => {
+          trigger(target, key)
+          console.log('delete', key)
+          delete target[key]
+        }
+      }
+    }
+    // 3.收集依赖, 在get中，使用track
+    function track(target, key) {
+      let depsMap = targetMap.get(target)
+      if (!depsMap) {
+        targetMap.set(target, (depsMap = new Map()))
+      }
+      let deps = depsMap.get(key)
+      if (!deps) {
+        deps = new Set()
+      }
+
+      if (!deps.has(activeEffect) && activeEffect) {
+        deps.add(activeEffect)
+      }
+      depsMap.set(key, deps)
+    }
+    // 4.触发依赖，在set中，使用trigger
+    function trigger(target, key) {
+      const depsMap = targetMap.get(target)
+      if (!depsMap) {
+        // 没找到依赖
+        return
+      }
+      const deps = depsMap.get(key)
+      if (!deps) {
+        return
+      }
+      console.log('triggertrigger', target, key, deps)
+      deps.forEach(effectFn => {
+        if (effectFn.scheduler) {
+          console.log('effectFn.schedule', target)
+          effectFn.scheduler()
+        } else {
+          effectFn()
+        }
+      })
+    }
+    // 5 effect
+    function effect(fn, options = {}) {
+      // effect嵌套，通过队列管理
+      const effectFn = () => {
+        try {
+          activeEffect = effectFn
+          //fn执行的时候，内部读取响应式数据的时候，就能在get配置里读取到activeEffect
+          return fn()
+        } finally {
+          activeEffect = null
+        }
+      }
+      if (!options.lazy) {
+        //没有配置lazy 直接执行
+        effectFn()
+      }
+      effectFn.scheduler = options.scheduler // 调度时机 watchEffect回用到
+      return effectFn
+    }
+    // 6.使用ref,因为ref是使用getter和setter来进行处理的，所以加一个创建类
+    function ref(val) {
+      return new RefImpl(val)
+    }
+
+    class RefImpl {
+      constructor(val) {
+        this._val = typeof val === 'object' ? reactive(val) : val
+      }
+      get value() {
+        track(this, 'value')
+        return this._val
+      }
+
+      set value(val) {
+        if (val !== this._val) {
+          this._val = typeof val === 'object' ? reactive(val) : val
+          trigger(this, 'value')
+        }
+      }
+    }
+
+    // 7.设置computed
+    function computed(fn) {
+      return new ComputedRefImpl(fn)
+    }
+
+    class ComputedRefImpl {
+      constructor(getter) {
+        this._val = undefined
+        this._dirty = true
+        this._effect = effect(getter, {
+          lazy: true,
+          scheduler: () => {
+            console.log('scheduler')
+            if (!this._dirty) {
+              this._dirty = true
+              trigger(this, 'value')
+            }
+          }
+        })
+      }
+      get value() {
+        console.log('get')
+        track(this, 'value')
+        if (this._dirty) {
+          this._dirty = false
+          this._val = this._effect()
+        }
+        return this._val
+      }
+    }
+
+    const userInfo = reactive({
+      name: 'test1'
+    })
+
+    const count = ref(1)
+
+    // const sum = computed(() => {
+    //   console.log('computed')
+    //   return count.value * 2
+    // })
+    // console.log('sum', sum.value)
+    // count.value++
+    // console.log('sum', sum.value)
+    // setInterval(() => {
+    //   //   userInfo.name += '!'
+    //   count.value++
+    //   console.log('sum', sum.value)
+    // }, 2000)
+    // // userInfo.name = 'nihao'
+    // // console.log(userInfo.name)
+    // const _effect = effect(
+    //   () => {
+    //     console.log('342', count.value)
+    //   },
+    //   {
+    //     lazy: true,
+    //     scheduler: () => {
+    //       console.log('count am change')
+    //     }
+    //   }
+    // )
+    // _effect()
+  </script>
+</html>

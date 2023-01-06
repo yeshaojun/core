@@ -234,7 +234,7 @@ function flushJobs(seen?: CountMap) {
         if (__DEV__ && check(job)) {
           continue
         }
-        // console.log(`running:`, job.id)
+        console.log(`running:`, job.id)
         callWithErrorHandling(job, null, ErrorCodes.SCHEDULER)
       }
     }

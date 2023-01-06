@@ -323,6 +323,7 @@ export function createAppAPI<HostElement>(
           if (isHydrate && hydrate) {
             hydrate(vnode as VNode<Node, Element>, rootContainer as any)
           } else {
+            console.log('rootContainer', rootContainer, __DEV__)
             render(vnode, rootContainer, isSVG)
           }
           isMounted = true

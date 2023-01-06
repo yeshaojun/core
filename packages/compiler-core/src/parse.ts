@@ -105,6 +105,7 @@ export function baseParse(
   content: string,
   options: ParserOptions = {}
 ): RootNode {
+  // 用来生成上下文，其实就是创建了一个对象，保存当前 parse 函数中需要共享的数据和变量，最后调用 parseChildren。
   const context = createParserContext(content, options)
   const start = getCursor(context)
   return createRoot(
@@ -147,8 +148,9 @@ function parseChildren(
 ): TemplateChildNode[] {
   const parent = last(ancestors)
   const ns = parent ? parent.ns : Namespaces.HTML
+  // 依次生成node
   const nodes: TemplateChildNode[] = []
-
+  // 如果遍历没结束
   while (!isEnd(context, mode, ancestors)) {
     __TEST__ && assert(context.source.length > 0)
     const s = context.source
@@ -156,13 +158,17 @@ function parseChildren(
 
     if (mode === TextModes.DATA || mode === TextModes.RCDATA) {
       if (!context.inVPre && startsWith(s, context.options.delimiters[0])) {
-        // '{{'
+        // 处理vue的变量标识符，两个大括号 '{{'
+        // 过 parseTextData 获取变量的值，并且通过 innerStart 和 innerEnd 去记录插值的位置
         node = parseInterpolation(context, mode)
       } else if (mode === TextModes.DATA && s[0] === '<') {
         // https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
+        // 处理<开头的代码，可能<div>是也有可能是</div>或者<!的注释
         if (s.length === 1) {
+          // 长度是1，只有一个< 有问题 报错
           emitError(context, ErrorCodes.EOF_BEFORE_TAG_NAME, 1)
         } else if (s[1] === '!') {
+          // html注释
           // https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
           if (startsWith(s, '<!--')) {
             node = parseComment(context)
@@ -181,6 +187,7 @@ function parseChildren(
             node = parseBogusComment(context)
           }
         } else if (s[1] === '/') {
+          // 表示</ 开头的标签，结束标签
           // https://html.spec.whatwg.org/multipage/parsing.html#end-tag-open-state
           if (s.length === 2) {
             emitError(context, ErrorCodes.EOF_BEFORE_TAG_NAME, 2)
@@ -201,6 +208,7 @@ function parseChildren(
             node = parseBogusComment(context)
           }
         } else if (/[a-z]/i.test(s[1])) {
+          // 解析节点
           node = parseElement(context, ancestors)
 
           // 2.x <template> with no directive compat
@@ -239,9 +247,10 @@ function parseChildren(
       }
     }
     if (!node) {
+      // 负责处理模板中的普通文本，主要是把文本包裹成 AST 对象
       node = parseText(context, mode)
     }
-
+    // node树数组，遍历push
     if (isArray(node)) {
       for (let i = 0; i < node.length; i++) {
         pushNode(nodes, node[i])
@@ -273,10 +282,10 @@ function parseChildren(
               (shouldCondense &&
                 ((prev.type === NodeTypes.COMMENT &&
                   next.type === NodeTypes.COMMENT) ||
-                  (prev.type === NodeTypes.COMMENT && 
-                  next.type === NodeTypes.ELEMENT) ||
+                  (prev.type === NodeTypes.COMMENT &&
+                    next.type === NodeTypes.ELEMENT) ||
                   (prev.type === NodeTypes.ELEMENT &&
-                  next.type === NodeTypes.COMMENT) ||
+                    next.type === NodeTypes.COMMENT) ||
                   (prev.type === NodeTypes.ELEMENT &&
                     next.type === NodeTypes.ELEMENT &&
                     /[\r\n]/.test(node.content))))
@@ -423,6 +432,7 @@ function parseBogusComment(context: ParserContext): CommentNode | undefined {
   }
 }
 
+// 首先要判断 pre 和 v-pre 标签，然后通过 isVoidTag 判断标签是否是自闭合标签，这个函数是从 compiler-dom 中传来的，之后会递归调用 parseChildren，接着再解析开始标签、解析子节点，最后解析结束标签。
 function parseElement(
   context: ParserContext,
   ancestors: ElementNode[]
@@ -430,9 +440,11 @@ function parseElement(
   __TEST__ && assert(/^<[a-z]/i.test(context.source))
 
   // Start tag.
+  // 是不是pre标签和v-pre标签
   const wasInPre = context.inPre
   const wasInVPre = context.inVPre
   const parent = last(ancestors)
+  // 解析标签节点
   const element = parseTag(context, TagType.Start, parent)
   const isPreBoundary = context.inPre && !wasInPre
   const isVPreBoundary = context.inVPre && !wasInVPre
@@ -541,6 +553,7 @@ function parseTag(
   const tag = match[1]
   const ns = context.options.getNamespace(tag, parent)
 
+  // 负责更新 context 中的 source 用来向前遍历代码
   advanceBy(context, match[0].length)
   advanceSpaces(context)
 

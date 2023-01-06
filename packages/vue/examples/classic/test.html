@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.global.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <span :class="['info-' + count]"> {{msg}} {{userInfo.name}}</span>
+      <button @click="test">click me</button>
+    </div>
+    <script>
+      const app = Vue.createApp({
+        setup() {
+          const msg = Vue.ref('nihao')
+          const count = Vue.ref(1)
+          const userInfo = Vue.reactive({
+            name: '123',
+            children: []
+          })
+          test = () => {
+            // count.value++
+            userInfo.name += '1'
+          }
+          return {
+            msg,
+            userInfo,
+            test,
+            count
+          }
+        }
+      })
+      app.mount('#app')
+
+      let resolvePromise = Promise.resolve()
+      let list = [
+        () => console.log(1),
+        () => console.log(2),
+        () => console.log(3)
+      ]
+      list.forEach(fn => {
+        console.log('循环', fn)
+        resolvePromise.then(fn)
+      })
+    </script>
+  </body>
+</html>

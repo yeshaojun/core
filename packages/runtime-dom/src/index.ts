@@ -64,6 +64,8 @@ export const hydrate = ((...args) => {
 }) as RootHydrateFunction
 
 export const createApp = ((...args) => {
+  // ensureRenderer() 生成一个render函数
+  console.log('ensureRenderer')
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {

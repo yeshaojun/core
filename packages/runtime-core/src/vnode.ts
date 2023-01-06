@@ -452,6 +452,7 @@ function createBaseVNode(
     ctx: currentRenderingInstance
   } as VNode
 
+  // 标准化子节点
   if (needFullChildrenNormalization) {
     normalizeChildren(vnode, children)
     // normalize suspense children

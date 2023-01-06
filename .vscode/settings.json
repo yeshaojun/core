@@ -13,5 +13,6 @@
   },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "livePreview.defaultPreviewPath": "/Users/sjye/code/core/packages/vue/examples/classic/todomvc.html"
 }

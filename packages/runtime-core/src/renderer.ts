@@ -361,10 +361,10 @@ function baseCreateRenderer(
     slotScopeIds = null,
     optimized = __DEV__ && isHmrUpdating ? false : !!n2.dynamicChildren
   ) => {
+    console.log('path')
     if (n1 === n2) {
       return
     }
-
     // patching & not same type, unmount old tree
     if (n1 && !isSameVNodeType(n1, n2)) {
       anchor = getNextHostNode(n1)
@@ -376,7 +376,6 @@ function baseCreateRenderer(
       optimized = false
       n2.dynamicChildren = null
     }
-
     const { type, ref, shapeFlag } = n2
     switch (type) {
       case Text:
@@ -866,7 +865,7 @@ function baseCreateRenderer(
           isSVG
         )
       } else {
-        // class
+        // class需要diff
         // this flag is matched when the element has dynamic class bindings.
         if (patchFlag & PatchFlags.CLASS) {
           if (oldProps.class !== newProps.class) {
@@ -876,6 +875,7 @@ function baseCreateRenderer(
 
         // style
         // this flag is matched when the element has dynamic style bindings
+        // style需要diff
         if (patchFlag & PatchFlags.STYLE) {
           hostPatchProp(el, 'style', oldProps.style, newProps.style, isSVG)
         }
@@ -886,6 +886,7 @@ function baseCreateRenderer(
         // faster iteration.
         // Note dynamic keys like :[foo]="bar" will cause this optimization to
         // bail out and go through a full diff because we need to unset the old key
+        // props需要diff
         if (patchFlag & PatchFlags.PROPS) {
           // if the flag is present then dynamicProps must be non-null
           const propsToUpdate = n2.dynamicProps!
@@ -913,6 +914,7 @@ function baseCreateRenderer(
 
       // text
       // This flag is matched when the element has only dynamic text children.
+      // 文本需要diff
       if (patchFlag & PatchFlags.TEXT) {
         if (n1.children !== n2.children) {
           hostSetElementText(el, n2.children as string)
@@ -1215,6 +1217,7 @@ function baseCreateRenderer(
       if (__DEV__) {
         startMeasure(instance, `init`)
       }
+      // 进行数据的代理
       setupComponent(instance)
       if (__DEV__) {
         endMeasure(instance, `init`)
@@ -1327,6 +1330,7 @@ function baseCreateRenderer(
             if (__DEV__) {
               startMeasure(instance, `render`)
             }
+            // 执行render函数，获取vdom
             instance.subTree = renderComponentRoot(instance)
             if (__DEV__) {
               endMeasure(instance, `render`)
@@ -1450,6 +1454,7 @@ function baseCreateRenderer(
         toggleRecurse(instance, false)
         if (next) {
           next.el = vnode.el
+          // 更新属性和slots
           updateComponentPreRender(instance, next, optimized)
         } else {
           next = vnode
@@ -1475,6 +1480,7 @@ function baseCreateRenderer(
         if (__DEV__) {
           startMeasure(instance, `render`)
         }
+        // 创建新的子树对象 nextTree
         const nextTree = renderComponentRoot(instance)
         if (__DEV__) {
           endMeasure(instance, `render`)
@@ -2317,6 +2323,7 @@ function baseCreateRenderer(
         unmount(container._vnode, null, null, true)
       }
     } else {
+      console.log('第一次挂载根节点的vnode', vnode)
       patch(container._vnode || null, vnode, container, null, null, null, isSVG)
     }
     flushPreFlushCbs()

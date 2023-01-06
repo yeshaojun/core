@@ -239,6 +239,7 @@ export function renderComponentRoot(
   }
 
   setCurrentRenderingInstance(prev)
+  console.warn('执行render，并返回result', result)
   return result
 }
 
